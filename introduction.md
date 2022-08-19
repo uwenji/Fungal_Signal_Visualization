@@ -8,6 +8,9 @@ it could save the file in the pico cloud or local.
 https://github.com/picotech
 - python wapprer
 https://github.com/picotech/picosdk-python-wrappers
+- python lib for adc-24:
+  https://github.com/SeanDS/datalog
+  
 
 ## picolog to supersweet
 - log_17.08.2022:
