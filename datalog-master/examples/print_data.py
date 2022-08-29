@@ -7,13 +7,13 @@ from datalog.data import DataStore
 # load ADC with default config
 adc = Adc.load_from_config(AdcConfig())
 if adc.is_open:
-    adc.open()
+    adc.open ()
 adc._get_hrdl_lib()
 # datastore holding last 1000 readings
 datastore = DataStore(1000)
 adc.configure()
 print(adc.get_full_unit_info())
-print(adc.get_last_error_message())
+
 # open ADC
 with adc.get_retriever(datastore) as retriever:
     # default last reading time

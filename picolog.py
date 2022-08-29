@@ -1,18 +1,19 @@
 import time
-
 from datalog.adc.adc import Adc
-
-import datalog.adc.config
-datalog.adc.config
+from datalog.adc.config import AdcConfig
 from datalog.data import DataStore
-from datalog.adc.hrdl.picolog import PicoLogAdc24
 
+#picolog setup
 # load ADC with default config
-adc = Adc.load_from_config(PicoLogAdc24.configure)
-
-
+adc = Adc.load_from_config(AdcConfig())
+if adc.is_open:
+    adc.open()
+adc._get_hrdl_lib()
 # datastore holding last 1000 readings
 datastore = DataStore(1000)
+
+adc.configure()
+print(adc.get_full_unit_info())
 
 
 # open ADC
@@ -26,11 +27,14 @@ with adc.get_retriever(datastore) as retriever:
 
         if len(new_readings):
             # display readings
-            for reading in new_readings:
-                print(reading)
-
+            # list = []
+            # for reading in new_readings:
+            #     list.append(reading)
+            readingData = str(new_readings[-1])
+            firstData = readingData.split(',')[0].replace('[','')
+            print(firstData)
             # get the last fetched reading's time
-            last_reading = new_readings[-1].reading_time
+            # last_reading = new_readings[-1].reading_time
 
         # sleep for 1 second
         time.sleep(1)
