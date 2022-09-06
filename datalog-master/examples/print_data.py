@@ -1,3 +1,21 @@
+"""Simple data printer example
+By default, this script will create a default ADC instance and print any data
+it produces to stdout. On first run, the datalog library will copy the default
+configuration, "adc.conf", into your operating system's configuration directory.
+You can find this directory by opening up a Python console and typing:
+> import datalog.adc.config
+> datalog.adc.config.AdcConfig.get_config_filepath()
+The default configuration uses the "PicoLog24Sim" class, which *simulates* a
+PicoLog ADC-24 unit, but generates random values instead of real measurements,
+and doesn't require a real unit to be plugged in. If you wish to use a real
+unit with this example, change this setting to e.g. "PicoLog24".
+Some channels are also already configured in the default configuration. Change
+these channels as appropriate.
+Sean Leavey
+https://github.com/SeanDS/
+"""
+
+
 import time
 
 from datalog.adc.adc import Adc
