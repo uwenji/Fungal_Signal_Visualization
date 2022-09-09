@@ -320,7 +320,7 @@ y_tri_grid = [
 ]
 
 fig = go.Figure()
-for i in range(0,156,1):
+for i in range(1,156,1):
   #the color 
   rgba = "rgba(255," + (f'{i:.1f}') + ",1,100)"
   fig.add_trace(go.Scatter(
@@ -331,4 +331,6 @@ for i in range(0,156,1):
   ))
 fig.update_traces(mode='lines')
 fig.show()
+
+function point2d()
 # %%
