@@ -1,8 +1,16 @@
-#%%
-import plotly.express as px
+import numpy as np
+import math
+import pandas as pd
+import dash
+from dash import html, dcc
 import plotly.graph_objects as go
-import math 
+import time 
+from jupyter_dash import JupyterDash
+from datalog.adc.adc import Adc
+from datalog.adc.config import AdcConfig
+from datalog.data import DataStore
 
+# ==== util
 def Distance(from_x, from_y, to_x, to_y):
     return math.sqrt(math.pow(to_x - from_x,2) + math.pow(to_y - from_y,2))
 
@@ -14,7 +22,15 @@ def ColorGradient(value, colorA, colorB):
     green = int((colorB['G'] - colorA['G'])*value + colorA['G'])
     blue = int((colorB['B'] - colorA['B'])*value + colorA['B'])
     return  {'R':red, 'G':green, 'B':blue}
-  
+
+# picolog setting
+adc24 = AdcConfig()
+adc = Adc.load_from_config(adc24)
+datastore = DataStore(1000)
+print(adc.get_full_unit_info())
+adc.open()
+
+# ==== browing graphic
 x_tri_grid = [
   [-6.35782896551973E-07,8.23608207702637],
 [-6.35782896551973E-07,4.11804103851318],
@@ -494,7 +510,6 @@ ColorA = {'R':124, 'G':180, 'B':255}
 ColorB = {'R':250, 'G':25, 'B':255}
 
 myLocation = (16,0)
-# mid_points = [] # input
 hexDict = [] #grid
 maxDistance = 0.0
 for i in range(len(mid_points)):
@@ -509,23 +524,42 @@ for i in range(len(mid_points)):
         "color": "#0066ff",
         }
     hexDict.append(eachDict)
-
+            
 for strip in hexDict:
     color = ColorGradient(strip["dictance"]/maxDistance, ColorA, ColorB)
     hex = Rgb2Hex(color['R'], color['G'], color['B'])
     strip["color"] = hex
-    
+# =========== code and plot setup ===========
+# settings
 fig = go.Figure()
 for i in range(1,156,1):
-  #the color 
-  rgba = hexDict[i]["color"]
-  fig.add_trace(go.Scatter(
-      x=x_tri_grid[i],
-      y=y_tri_grid[i],
-      line_color=rgba,
-      showlegend=False
-  ))
-fig.update_traces(mode='lines')
-fig.show()
+    #the color 
+    rgba = hexDict[i]["color"]
+    fig.add_trace(go.Scatter(
+        x=x_tri_grid[i],
+        y=y_tri_grid[i],
+        line_color=rgba,
+        showlegend=False
+))
 
-# %%
+fig.update_traces(hoverinfo='text+name', mode='lines+markers')
+fig.update_layout(legend=dict(y=0.5, traceorder='reversed', font_size=16))
+
+app = JupyterDash(__name__)
+
+app.layout = html.Div([
+    html.H1("Streaming of Picolog data"),
+            dcc.Interval(
+            id='interval-component',
+            interval=1*1000, # in milliseconds
+            n_intervals=0
+        ),
+    dcc.Graph(
+        figure=fig,
+        style={'width': '900px', 'height': '800px'}),
+    
+])
+
+
+app.run_server(mode='external', port = 8069, dev_tools_ui=True, #debug=True,
+            dev_tools_hot_reload =True, threaded=True)

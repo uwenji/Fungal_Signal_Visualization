@@ -12,20 +12,24 @@ adc = Adc.load_from_config(adc24)
 # datastore holding last 1000 readings
 datastore = DataStore(1000)
 
+i = 0
 # open ADC
 with adc.get_retriever(datastore) as retriever:
     # default last reading time
     last_reading = 0
-    adc
-    while(True):
+
+    while(retriever.retrieving):
         # look for new readings
         new_readings = datastore.get_readings(pivot_time=last_reading)
         if len(new_readings):
             readingData = str(new_readings[-1])
             print(readingData)
+            i += 1
             # arr = np.array(np.mat(readingData.split(','),dtype=float))
             arr = np.array(np.mat(readingData.split(',')))
             # Define callback to update graph
-        # sleep for 1 second
+            # sleep for 1 second
         time.sleep(1)
+        if(i==20):
+            break
         

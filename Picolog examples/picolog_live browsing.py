@@ -47,9 +47,9 @@ with adc.get_retriever(datastore) as retriever:
 
             # sample dataframe of a wide format
             np.random.seed(4); cols = list('a')
-            X = np.random.randn(50,len(cols))  
+            X = []
             df=pd.DataFrame(X, columns=cols)
-            df.iloc[0]=0;
+            # df.iloc[0]=0;
 
             # plotly figure
             fig = df.plot(template = 'simple_white')
