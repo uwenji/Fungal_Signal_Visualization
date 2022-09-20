@@ -7,18 +7,24 @@ from datalog.adc.config import AdcConfig
 from datalog.data import DataStore
 import plotly.graph_objects as go
 from jupyter_dash import JupyterDash
-
 # ==== util
 def Distance(from_x, from_y, to_x, to_y):
     return np.sqrt(np.power(to_x - from_x,2) + np.power(to_y - from_y,2))
 
 def Rgb2Hex(r, g, b):
-  return '#'+('{:X}{:X}{:X}').format(r, g, b)
+  return '#'+('{:02X}{:02X}{:02X}').format(r, g, b)
 
-def ColorGradient(value, colorA, colorB):
-    red = int((colorB['R'] - colorA['R'])*value + colorA['R'])
-    green = int((colorB['G'] - colorA['G'])*value + colorA['G'])
-    blue = int((colorB['B'] - colorA['B'])*value + colorA['B'])
+def ColorGradient(value, colorA, colorB, colorC):
+    if(value<=0.5):
+        value = value*2
+        red = int((colorB['R'] - colorA['R'])*value + colorA['R'])
+        green = int((colorB['G'] - colorA['G'])*value + colorA['G'])
+        blue = int((colorB['B'] - colorA['B'])*value + colorA['B'])
+    else:
+        value = (value-0.5)*2
+        red = int((colorC['R'] - colorB['R'])*value + colorB['R'])
+        green = int((colorC['G'] - colorB['G'])*value + colorB['G'])
+        blue = int((colorC['B'] - colorB['B'])*value + colorB['B'])
     return  {'R':red, 'G':green, 'B':blue}
 
 # ==== browing graphic
@@ -503,14 +509,14 @@ app.layout = html.Div([
     html.H1("Streaming of Picolog data"),
             dcc.Interval(
             id='interval-component',
-            interval=1*1000, # in milliseconds
+            interval=1*500, # in milliseconds
             n_intervals=0
         ),
     dcc.Graph(
         id='hexGrid',
         style={'width': '900px', 'height': '800px'}),
-    dcc.Graph(id="graphA"),
     dcc.Graph(id="graphB"),
+    dcc.Graph(id="graphA"),
 ])
 
 @app.callback(
@@ -518,11 +524,23 @@ app.layout = html.Div([
     [Input('interval-component', "n_intervals")]
 )
 def update_hexColor(n_clicls):
-    ColorA = {'R':124, 'G':180, 'B':255}
-    ColorB = {'R':250, 'G':25, 'B':255}
-
-    myLocation = (16,0)
+    # ColorA = {'R':204, 'G':102, 'B':153}
+    ColorA = {'R':51, 'G':204, 'B':51}
+    # ColorB = {'R':255, 'G':184, 'B':77}
+    ColorB = {'R':51, 'G':102, 'B':255}
+    # ColorC = {'R':0, 'G':229, 'B':255}
+    ColorC = {'R':153, 'G':51, 'B':102}
     
+    myLocation = (20,30)
+    step = 10
+    df = pd.read_csv('./pico2tsv/example.csv') # replace with your own data source
+    pico24 = [] #len = step count
+    for i in range(len(df['channel1'])-10,len(df['channel1']),1):
+        #=SQRT(B - SQRT(A))/1000
+        num = (df.iat[i,2] - df.iat[i-1,2])/100000
+        pico24.append((num+100)/200)
+        # pico24.append(np.sqrt(np.sqrt(df.iat[i,1]) - np.sqrt(df.iat[i,0]))/1000)
+    # newDf = pd.DataFrame(pico24)
     hexDict = [] #grid
     maxDistance = 0.0
     for i in range(len(mid_points)):
@@ -531,6 +549,7 @@ def update_hexColor(n_clicls):
         value = Distance(myLocation[0], myLocation[1], mid_points[i][0], mid_points[i][1])
         if(maxDistance < value):
             maxDistance = value
+            ########
         eachDict = {
             "id": i,
             "dictance":value,
@@ -538,12 +557,28 @@ def update_hexColor(n_clicls):
             }
         hexDict.append(eachDict)
     
+    # find the range
+    rangeSet = []
+    step = 10
+    for i in range(step):
+        v = maxDistance*(float(i)/float(step))
+        rangeSet.append(v)
+    color2csv = []
     for strip in hexDict:
-        color = ColorGradient(strip["dictance"]/maxDistance, ColorA, ColorB)
+        group = 0
+        for i in range(0, step):
+            if rangeSet[i] < (maxDistance-strip["dictance"]):
+                group = i
+        #remap value
+        color = ColorGradient(pico24[group], ColorA, ColorB, ColorC)
+        color2csv.append(color)
+        #hex = matplotlib.colors.to_hex([ 0.47, 0.0, 1.0, 0.5 ], keep_alpha=True)
         hex = Rgb2Hex(color['R'], color['G'], color['B'])
         strip["color"] = hex
+    # print(cluster)
+    # print('------------------------------')
     hexFig = go.Figure()   
-    for i in range(1,156,1):
+    for i in range(0,156,1):
         #the color 
         rgba = hexDict[i]["color"]
         hexFig.add_trace(go.Scatter(
@@ -552,6 +587,9 @@ def update_hexColor(n_clicls):
             line_color=rgba,
             showlegend=False
         ))
+    colorFrame = pd.DataFrame(color2csv)
+    colorFrame.to_csv('/Users/jyou/Desktop/Fungal_Signal_Visualization/pico2tsv/hexColors.csv')
+    
     hexFig.update_traces(hoverinfo='text+name', mode='lines+markers')
     hexFig.update_layout(legend=dict(y=0.5, traceorder='reversed', font_size=16))
     return hexFig
@@ -579,9 +617,10 @@ def display_graph(n_clicks):
 def display_graph(n_clicks):
     df = pd.read_csv('./pico2tsv/example.csv') # replace with your own data source
     pico24 = []
-    for i in range(1,len(df['channel1']),1):
+    for i in range(1,len(df['channel1'])-1,1):
         #=SQRT(B - SQRT(A))/1000
-        pico24.append(df.iat[i,2])
+        num = (df.iat[i,2] - df.iat[i-1,2])/100000
+        pico24.append(num)
         # pico24.append(np.sqrt(np.sqrt(df.iat[i,1]) - np.sqrt(df.iat[i,0]))/1000)
     newDf = pd.DataFrame(pico24)
     # print(newDf)

@@ -1,10 +1,15 @@
+"""(Very) Simple Implementation of Artnet.
+Implementation for Artnet from https://github.com/cpvalente/stupidArtnet/tree/master/stupidArtnet
+in python 3
+by you-wen ji, 2022 @fangal architectural @citacph
+"""
 
 import socket
 from threading import Timer
 import time
 import math as m
 import asyncio
-import pandas as pd
+
 class Artnet():
     """(Very) simple implementation of Artnet."""
 
@@ -408,28 +413,48 @@ main from below
 """
 
 target_ip = '192.168.2.1'		# the defaut of super sweet
-universe = 2 					# the port number
+universe = 1					# the port number
 packet_size = 512				
-while(True):
-    kagome = Artnet(target_ip, universe, packet_size, 20, True, True)
-    packet = bytearray(packet_size)		# create packet for Artnet
+
+kagome = Artnet(target_ip, universe, packet_size, 20, True, True)
+
+packet = bytearray(packet_size)		# create packet for Artnet
+kagome.buffer = packet
+total = 167
+kagome.start()
+for i in range(134):
+    # kagome.start()							# start continuos sendin
+    
+    if i > total:
+        kagome.set_address_color(i,0,0,0)
+    # elif i > 156-total:
+    #     kagome.set_address_color(i,0,0,0)
+    else:
+        kagome.set_address_color(i,put_in_range(i,0,60),40,40)
+    # kagome.set(packet)
+    time.sleep(0.01)
+    kagome.start()
+
+async def compute():
+    global kagome
+    packet = bytearray(packet_size)
     kagome.buffer = packet
 
+    await asyncio.sleep(0.05)
 
-    df = pd.read_csv('/Users/jyou/Desktop/Fungal_Signal_Visualization/pico2tsv/hexColors.csv') 
-    pico24 = []
+    
 
-    for i in range(len(df['R'])):
-        pico24.append(df.iat[i,1])
-        kagome.set_address_color(i+1,int(df.iat[i,1]*0.4),int(df.iat[i,3]*0.4),int(df.iat[i,2]*0.4))
-    # print(pico24)
-    # async def compute():
-    #     global kagome
-    #     packet = bytearray(packet_size)
-    #     kagome.buffer = packet
 
-    #     await asyncio.sleep(0.05)
-    kagome.start()
-    time.sleep(1)
-    kagome.stop()
-    del kagome
+# kagome.set_address_color(7,100,100,40)
+
+# time.sleep(1)
+# kagome.blackout()
+
+# kagome.set_address_color(157,30,30,30)
+# kagome.start()
+# time.sleep(1)
+# ... REMEMBER TO CLOSE THE THREAD ONCE YOU ARE DONE
+kagome.stop()
+
+# CLEANUP IN THE END
+del kagome
