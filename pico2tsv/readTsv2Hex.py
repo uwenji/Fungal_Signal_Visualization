@@ -12,7 +12,19 @@ def Distance(from_x, from_y, to_x, to_y):
     return np.sqrt(np.power(to_x - from_x,2) + np.power(to_y - from_y,2))
 
 def Rgb2Hex(r, g, b):
-  return '#'+('{:02X}{:02X}{:02X}').format(r, g, b)
+    return '#'+('{:02X}{:02X}{:02X}').format(r, g, b)
+
+def Remap(value, min, max, v_default):
+    newV = (value - v_default)
+    if(value > v_default+min and value < v_default+max):
+        return float(newV - min)/float(max-min)
+    elif(value <= v_default+min ):
+        return 0.0
+    else:
+        return 1.0
+
+def Rotate(l, n):
+    return l[n:] + l[:n]
 
 def ColorGradient(value, colorA, colorB, colorC):
     if(value<=0.5):
@@ -27,6 +39,7 @@ def ColorGradient(value, colorA, colorB, colorC):
         blue = int((colorC['B'] - colorB['B'])*value + colorB['B'])
     return  {'R':red, 'G':green, 'B':blue}
 
+csvPath = '/Users/jyou/Desktop/Fungal_Signal_Visualization/pico2tsv/example_2.csv'
 # ==== browing graphic
 x_tri_grid = [
         [-6.35782896551973E-07,8.23608207702637],
@@ -519,34 +532,47 @@ app.layout = html.Div([
     dcc.Graph(id="graphA"),
 ])
 
+rotate_count = 0
+moving = 0
 @app.callback(
     Output('hexGrid', 'figure'),
     [Input('interval-component', "n_intervals")]
 )
 def update_hexColor(n_clicls):
     # ColorA = {'R':204, 'G':102, 'B':153}
-    ColorA = {'R':51, 'G':204, 'B':51}
+    ColorA = {'R':246, 'G':134, 'B':0}
     # ColorB = {'R':255, 'G':184, 'B':77}
-    ColorB = {'R':51, 'G':102, 'B':255}
+    ColorB = {'R':0, 'G':212, 'B':255}
     # ColorC = {'R':0, 'G':229, 'B':255}
-    ColorC = {'R':153, 'G':51, 'B':102}
+    ColorC = {'R':170, 'G':12, 'B':155}
+    global moving, csvPath
+    PicoDefault = 7700
     
-    myLocation = (20,30)
-    step = 10
-    df = pd.read_csv('./pico2tsv/example.csv') # replace with your own data source
+    # moving source
+    # Location = (x_tri_grid[moving][0],y_tri_grid[moving][0])
+    # moving+=1; moving = moving%156
+    Location = (21,21)
+    arr = np.random.uniform(-2,2,size=(1,2))
+    Location = (Location[0]+ arr[0,0], Location[1]+ arr[0,1])
+    # if(np.abs(Location[0]))
+    # read from csv
+    df = pd.read_csv(csvPath) # replace with your own data source
     pico24 = [] #len = step count
-    for i in range(len(df['channel1'])-10,len(df['channel1']),1):
-        #=SQRT(B - SQRT(A))/1000
-        num = (df.iat[i,2] - df.iat[i-1,2])/100000
-        pico24.append((num+100)/200)
-        # pico24.append(np.sqrt(np.sqrt(df.iat[i,1]) - np.sqrt(df.iat[i,0]))/1000)
-    # newDf = pd.DataFrame(pico24)
+    timerange = 180
+    refValue = df.iat[1,2]
+    for i in range(len(df['channel1'])-timerange,len(df['channel1']),1):
+        if(refValue!=df.iat[i,2]):
+            num = df.iat[i,2]
+            pico24.append(Remap(num, -100,100, PicoDefault))
+            refValue = num
+
+    # set grid info
     hexDict = [] #grid
     maxDistance = 0.0
     for i in range(len(mid_points)):
         #the point(x, y) => x is point[0], y is point[1]
         #dict structure is {distance, }
-        value = Distance(myLocation[0], myLocation[1], mid_points[i][0], mid_points[i][1])
+        value = Distance(Location[0], Location[1], mid_points[i][0], mid_points[i][1])
         if(maxDistance < value):
             maxDistance = value
             ########
@@ -559,18 +585,25 @@ def update_hexColor(n_clicls):
     
     # find the range
     rangeSet = []
-    step = 10
+    step = len(pico24)
     for i in range(step):
         v = maxDistance*(float(i)/float(step))
         rangeSet.append(v)
     color2csv = []
+    
+    global rotate_count
+    rotate_count = rotate_count%len(pico24)
+    rotate_count += 1
+    
+    pico = Rotate( pico24, rotate_count)
+    # print(pico)
     for strip in hexDict:
         group = 0
         for i in range(0, step):
             if rangeSet[i] < (maxDistance-strip["dictance"]):
                 group = i
         #remap value
-        color = ColorGradient(pico24[group], ColorA, ColorB, ColorC)
+        color = ColorGradient(pico[group], ColorA, ColorB, ColorC)
         color2csv.append(color)
         #hex = matplotlib.colors.to_hex([ 0.47, 0.0, 1.0, 0.5 ], keep_alpha=True)
         hex = Rgb2Hex(color['R'], color['G'], color['B'])
@@ -600,11 +633,18 @@ def update_hexColor(n_clicls):
     [Input('interval-component', "n_intervals")]
 )
 def display_graph(n_clicks):
-    df = pd.read_csv('./pico2tsv/example.csv') # replace with your own data source
+    global csvPath
+    df = pd.read_csv(csvPath) # replace with your own data source
+    refValue = df.iat[1,2]
     pico24 = []
-    for i in range(1,len(df['channel1']),1):
+    timerange = 180
+    for i in range(len(df['channel1'])-180,len(df['channel1']),1):
         #=SQRT(B - SQRT(A))/1000
-        pico24.append(df.iat[i,1])
+        # num = (df.iat[i,2] - df.iat[i-1,2])
+        num = df.iat[i,2]
+        if(refValue!=num):
+            refValue=num
+            pico24.append(num)
         # pico24.append(np.sqrt(np.sqrt(df.iat[i,1]) - np.sqrt(df.iat[i,0]))/1000)
     newDf = pd.DataFrame(pico24)
     # print(newDf)
@@ -615,12 +655,17 @@ def display_graph(n_clicks):
     [Input('interval-component', "n_intervals")]
 )
 def display_graph(n_clicks):
-    df = pd.read_csv('./pico2tsv/example.csv') # replace with your own data source
+    global csvPath
+    df = pd.read_csv(csvPath) # replace with your own data source
+    refValue = df.iat[1,2]
     pico24 = []
     for i in range(1,len(df['channel1'])-1,1):
         #=SQRT(B - SQRT(A))/1000
-        num = (df.iat[i,2] - df.iat[i-1,2])/100000
-        pico24.append(num)
+        # num = (df.iat[i,2] - df.iat[i-1,2])
+        num = df.iat[i,2]
+        if(refValue!=num):
+            refValue=num
+            pico24.append(num)
         # pico24.append(np.sqrt(np.sqrt(df.iat[i,1]) - np.sqrt(df.iat[i,0]))/1000)
     newDf = pd.DataFrame(pico24)
     # print(newDf)

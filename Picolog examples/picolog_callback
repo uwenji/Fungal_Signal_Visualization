@@ -22,11 +22,13 @@ with adc.get_retriever(datastore) as retriever:
         # look for new readings
         new_readings = datastore.get_readings(pivot_time=last_reading)
         if len(new_readings):
-            readingData = str(new_readings[-1])
-            print(readingData)
-            i += 1
+            # readingData = str(new_readings[-1])
+            # print(readingData)
+            # i += 1
+            print(len(new_readings))
             # arr = np.array(np.mat(readingData.split(','),dtype=float))
-            arr = np.array(np.mat(readingData.split(',')))
+            
+            # arr = np.array(np.mat(readingData.split(',')))
             # Define callback to update graph
             # sleep for 1 second
         time.sleep(1)

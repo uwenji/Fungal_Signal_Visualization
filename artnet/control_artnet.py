@@ -408,7 +408,7 @@ main from below
 """
 
 target_ip = '192.168.2.1'		# the defaut of super sweet
-universe = 2 					# the port number
+universe = 0 					# the port number
 packet_size = 512				
 while(True):
     kagome = Artnet(target_ip, universe, packet_size, 20, True, True)
@@ -421,7 +421,7 @@ while(True):
 
     for i in range(len(df['R'])):
         pico24.append(df.iat[i,1])
-        kagome.set_address_color(i+1,int(df.iat[i,1]*0.4),int(df.iat[i,3]*0.4),int(df.iat[i,2]*0.4))
+        kagome.set_address_color(i+1,int(df.iat[i,1]*0.2),int(df.iat[i,3]*0.2),int(df.iat[i,2]*0.2))
     # print(pico24)
     # async def compute():
     #     global kagome
