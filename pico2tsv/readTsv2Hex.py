@@ -2,9 +2,6 @@ from dash import Dash, dcc, html, Input, Output
 import plotly.express as px
 import pandas as pd
 import numpy as np
-from datalog.adc.adc import Adc
-from datalog.adc.config import AdcConfig
-from datalog.data import DataStore
 import plotly.graph_objects as go
 from jupyter_dash import JupyterDash
 # ==== util
